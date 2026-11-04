@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
 const MESSAGES = [
-  { at: 0, text: "Initializing Love.exe..." },
-  { at: 60, text: "Searching for the prettiest smile..." },
-  { at: 95, text: "Found 1 Result 🧡" },
+  { at: 0, text: "Love.exe suru hot ahe..." },
+  { at: 60, text: "Saglyat sundar smile cha shodh suru ahe..." },
+  { at: 95, text: "1 Result Milala 🧡" },
 ];
 
-export default function Loader({ onDone }) {
+export default function Loader({ onDone, onAction }) {
   const [progress, setProgress] = useState(0);
   const [typed, setTyped] = useState("");
 
@@ -43,8 +43,14 @@ export default function Loader({ onDone }) {
       </div>
       <small className="pct">{Math.floor(progress)}%</small>
       {done && (
-        <button className="btn ghost fade-in" onClick={onDone}>
-          Found 1 Result 🧡
+        <button
+          className="btn ghost fade-in"
+          onClick={() => {
+            onAction?.("Clicked '1 Result Milala 🧡' (Completed Loader)");
+            onDone();
+          }}
+        >
+          1 Result Milala 🧡
         </button>
       )}
     </div>

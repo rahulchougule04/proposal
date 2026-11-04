@@ -1,6 +1,13 @@
 import Confetti from "./Confetti.jsx";
 
-export default function Celebration({ onDone }) {
+export default function Celebration({ onDone, onAction }) {
+  const handleClick = () => {
+    onAction?.(
+      "Clicked 'Aaplya Story Madhe Swagat Ahe 🧡' (Celebration Completed -> Entering Story)"
+    );
+    onDone();
+  };
+
   return (
     <>
       <Confetti count={200} loop />
@@ -8,16 +15,16 @@ export default function Celebration({ onDone }) {
       <p className="line">
         Officially...
         <br />
-        Ab tum meri favourite notification ho.
+        Aata tu mazi saglyat favourite notification ahes.
       </p>
       <p className="line">
         I Promise...
         <br />
-        Har smile ki wajah banne ki puri koshish karunga.
+        Tuzya pratyek smile ch kaaran bannyacha purna prayatna karen.
       </p>
       <div className="ring" />
-      <button className="btn" onClick={onDone}>
-        Welcome to Our Story
+      <button className="btn" onClick={handleClick}>
+        Aaplya Story Madhe Swagat Ahe 🧡
       </button>
     </>
   );

@@ -2,19 +2,19 @@ export const WHATSAPP_PHONE = "919322513396";
 
 export function getFullProposalWhatsAppUrl(quizAnswers = {}, proposalTries = 0) {
   const lines = [
-    "OMG YES! 💗💍",
+    "OMG HO! 💗💍",
     "",
-    "💖 *Kya Tum Meri Girlfriend Banogi?* 👉 *YES!*",
+    "💖 *Tu Mazi Girlfriend Hoshil Ka?* 👉 *HO!*",
     proposalTries > 0
-      ? `🙈 (Tried to click 'No' ${proposalTries} time${proposalTries > 1 ? "s" : ""}, but the button ran away!)`
-      : "🥰 (Said YES right away!)",
+      ? `🙈 ('Nako' var ${proposalTries} vela click karaycha prayatna kela, pan button palun gela!)`
+      : "🥰 (Lagech HO bolli!)",
     "",
-    "📋 *All My Answers:*",
+    "📋 *Mazi Sagli Answers:*",
     ...Object.entries(quizAnswers)
       .filter(([q]) => q !== "proposal")
       .map(([q, a]) => `✨ ${q} 👉 *${a}*`),
     "",
-    "Officially yours forever! 🧡🎉",
+    "Officially tuzich forever! 🧡🎉",
   ];
   return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(lines.join("\n"))}`;
 }

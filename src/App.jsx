@@ -7,7 +7,15 @@ import Player from "./components/Player.jsx";
 import Question from "./components/Question.jsx";
 import Celebration from "./components/Celebration.jsx";
 import Story from "./components/Story.jsx";
-import { saveProposalNo, saveProposalResponse, saveQuestionAnswer } from "./firebase.js";
+import {
+  initSession,
+  logButtonAction,
+  logStageTransition,
+  logUserBackOrExit,
+  saveProposalNo,
+  saveProposalResponse,
+  saveQuestionAnswer,
+} from "./firebase.js";
 
 const STAGES = [
   "loader",
@@ -24,14 +32,21 @@ export default function App() {
   const [yesAt, setYesAt] = useState(null);
   const [proposalTries, setProposalTries] = useState(0);
   const [answers, setAnswers] = useState({
-    "Coffee Date?": "YES",
-    "Late Night Talks?": "100%",
-    "Movie Nights?": "YES",
-    proposal: "YES! 💗💍",
+    "Coffee Date?": "HO NAKKI",
+    "Late Night Talks?": "100% HO",
+    "Movie Nights?": "HO CHALEL",
+    proposal: "HO! 💗💍",
   });
 
   // Unique session ID for each visit so responses are grouped together
   const sessionIdRef = useRef("proposal_" + Date.now());
+
+  // Tracks current stage for real-time window back / pagehide event handlers
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
+
+  // Tracks whether proposal has been accepted so exits afterwards aren't marked as rejections
+  const hasAcceptedRef = useRef(false);
 
   // One shared <audio> so the song keeps playing across screens
   const audioRef = useRef(null);
@@ -40,8 +55,44 @@ export default function App() {
     audioRef.current.loop = true;
   }
 
+  // 1. Initialize session in Firebase on initial page load
+  useEffect(() => {
+    initSession({ sessionId: sessionIdRef.current, initialStage: "loader" });
+    try {
+      window.history.replaceState({ stage: "loader", index: 0 }, "");
+    } catch {
+      // Safe fallback if history API is restricted in sandbox
+    }
+  }, []);
+
+  // Generic button click / user action logger for all child components
+  const handleAction = useCallback((actionDescription) => {
+    logButtonAction({
+      sessionId: sessionIdRef.current,
+      stage: stageRef.current,
+      action: actionDescription,
+    });
+  }, []);
+
   const next = useCallback(() => {
-    setStage((s) => STAGES[Math.min(STAGES.indexOf(s) + 1, STAGES.length - 1)]);
+    setStage((prev) => {
+      const currentIndex = STAGES.indexOf(prev);
+      const nextIndex = Math.min(currentIndex + 1, STAGES.length - 1);
+      const nextStage = STAGES[nextIndex];
+      if (nextStage !== prev) {
+        try {
+          window.history.pushState({ stage: nextStage, index: nextIndex }, "");
+        } catch {
+          // Safe fallback
+        }
+        logStageTransition({
+          sessionId: sessionIdRef.current,
+          fromStage: prev,
+          toStage: nextStage,
+        });
+      }
+      return nextStage;
+    });
   }, []);
 
   const handleQuizAnswer = useCallback((question, ans) => {
@@ -59,61 +110,23 @@ export default function App() {
   }, []);
 
   const handleNo = useCallback(
-    (tries = 1) => {
+    (tries = 1, label = "NAKO") => {
       setProposalTries(tries);
       saveProposalNo({
         sessionId: sessionIdRef.current,
         answers,
-        reason: `Clicked 'NO' on proposal screen (${tries} attempt${tries > 1 ? "s" : ""})`,
+        tries,
+        label,
+        reason: `Clicked 'NAKO' dodge #${tries}: "${label}"`,
       });
     },
     [answers]
   );
 
-  // If the user goes back on phone/browser or exits while on the proposal screen,
-  // automatically record the proposal as NO in Firebase Firestore
-  useEffect(() => {
-    if (stage === "question") {
-      window.history.pushState({ stage: "question" }, "");
-
-      // Immediately log that question stage was reached without saying YES yet
-      saveProposalNo({
-        sessionId: sessionIdRef.current,
-        answers,
-        reason: "Reached proposal screen (Awaiting YES or left page)",
-      });
-
-      const handlePopState = () => {
-        saveProposalNo({
-          sessionId: sessionIdRef.current,
-          answers,
-          reason: "Pressed back button on proposal page",
-        });
-      };
-
-      const handlePageLeave = () => {
-        saveProposalNo({
-          sessionId: sessionIdRef.current,
-          answers,
-          reason: "Closed or navigated away from proposal page",
-        });
-      };
-
-      window.addEventListener("popstate", handlePopState);
-      window.addEventListener("pagehide", handlePageLeave);
-      window.addEventListener("beforeunload", handlePageLeave);
-
-      return () => {
-        window.removeEventListener("popstate", handlePopState);
-        window.removeEventListener("pagehide", handlePageLeave);
-        window.removeEventListener("beforeunload", handlePageLeave);
-      };
-    }
-  }, [stage, answers]);
-
   const sayYes = useCallback(
     (tries = 0) => {
-      const updatedAnswers = { ...answers, proposal: "YES! 💗💍" };
+      hasAcceptedRef.current = true;
+      const updatedAnswers = { ...answers, proposal: "HO! 💗💍" };
       setYesAt(Date.now());
       setProposalTries(tries);
       setAnswers(updatedAnswers);
@@ -130,16 +143,96 @@ export default function App() {
     [answers, next]
   );
 
+  // Record if user presses browser/phone Back button or leaves the page without seeing next step
+  useEffect(() => {
+    const handlePopState = () => {
+      const current = stageRef.current;
+      logUserBackOrExit({
+        sessionId: sessionIdRef.current,
+        stage: current,
+        reason: `Pressed browser/phone BACK button on step '${current}' without seeing next step`,
+        eventType: "BACK_BUTTON",
+        answers,
+        proposalTries,
+      });
+
+      try {
+        window.history.pushState(
+          { stage: current, index: STAGES.indexOf(current) },
+          ""
+        );
+      } catch {
+        // Safe fallback
+      }
+    };
+
+    const handlePageHide = () => {
+      const current = stageRef.current;
+      if (!hasAcceptedRef.current && current !== "story") {
+        logUserBackOrExit({
+          sessionId: sessionIdRef.current,
+          stage: current,
+          reason: `Closed or navigated away from page on step '${current}' without seeing next step`,
+          eventType: "PAGE_HIDE",
+          answers,
+          proposalTries,
+        });
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      const current = stageRef.current;
+      if (!hasAcceptedRef.current && current !== "story") {
+        logUserBackOrExit({
+          sessionId: sessionIdRef.current,
+          stage: current,
+          reason: `Browser tab closed or refreshed during step '${current}' without seeing next step`,
+          eventType: "BEFORE_UNLOAD",
+          answers,
+          proposalTries,
+        });
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [answers, proposalTries]);
+
   return (
     <div className="app">
       <Background />
       <div className="stage" key={stage}>
-        {stage === "loader" && <Loader onDone={next} />}
-        {stage === "envelope" && <Envelope onDone={next} />}
-        {stage === "quiz" && <Quiz onDone={next} onAnswer={handleQuizAnswer} />}
-        {stage === "player" && <Player audio={audioRef.current} onDone={next} />}
-        {stage === "question" && <Question onYes={sayYes} onNo={handleNo} />}
-        {stage === "celebration" && <Celebration onDone={next} />}
+        {stage === "loader" && <Loader onDone={next} onAction={handleAction} />}
+        {stage === "envelope" && (
+          <Envelope onDone={next} onAction={handleAction} />
+        )}
+        {stage === "quiz" && (
+          <Quiz
+            onDone={next}
+            onAnswer={handleQuizAnswer}
+            onAction={handleAction}
+          />
+        )}
+        {stage === "player" && (
+          <Player
+            audio={audioRef.current}
+            onDone={next}
+            onAction={handleAction}
+          />
+        )}
+        {stage === "question" && (
+          <Question onYes={sayYes} onNo={handleNo} onAction={handleAction} />
+        )}
+        {stage === "celebration" && (
+          <Celebration onDone={next} onAction={handleAction} />
+        )}
         {stage === "story" && (
           <Story
             since={yesAt ?? Date.now()}

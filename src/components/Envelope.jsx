@@ -2,16 +2,21 @@ import { useState } from "react";
 
 const PAGES = [
   [
-    "Hey Jaan...",
-    "Pata hai... Main ye sab normally bol nahi pata...",
-    "Lekin aaj dil ne kaha... Risk le le...",
-    "Kyuki kuch log baar baar nahi milte.",
+    "Mahit ahe... Mi he sagla normally bolu shakat nahi...",
+    "Pan aaj manane sangitla... Risk gheun bagh...",
+    "Karan kahi loka aayushyat punha punha nahi bhetat.",
   ],
-  ["Jab bhi tum online aati ho...", "Mera mood automatically better ho jata hai."],
-  ["Honestly...", "Tum meri life ki sabse pyari coincidence ho."],
+  [
+    "Jevha pan tu online yetes na...",
+    "Maza mood automatically khup changla hoto.",
+  ],
+  [
+    "Honestly...",
+    "Tu mazya life madhla saglyat sundar coincidence ahes.",
+  ],
 ];
 
-export default function Envelope({ onDone }) {
+export default function Envelope({ onDone, onAction }) {
   const [open, setOpen] = useState(false);
   const [showLetter, setShowLetter] = useState(false);
   const [page, setPage] = useState(0);
@@ -19,6 +24,7 @@ export default function Envelope({ onDone }) {
   const openEnvelope = () => {
     if (open) return;
     setOpen(true);
+    onAction?.("Tapped and opened the envelope");
     setTimeout(() => setShowLetter(true), 1000);
   };
 
@@ -31,22 +37,32 @@ export default function Envelope({ onDone }) {
           <div className="front" />
           <div className="flap" />
         </div>
-        <p className="hint">tap the envelope to open it</p>
+        <p className="hint">Chiththi ughadnyasathi tap kara 💌</p>
       </>
     );
   }
 
   const last = page === PAGES.length - 1;
+  const handleNext = () => {
+    if (last) {
+      onAction?.("Finished reading Letter, clicked 'Pudhe Chala 🧡' (Proceeding to Quiz)");
+      onDone();
+    } else {
+      onAction?.(`Read Letter Page ${page + 1}/${PAGES.length}, clicked 'Pudhe →' (Viewing Page ${page + 2})`);
+      setPage(page + 1);
+    }
+  };
+
   return (
     <div className="letter">
-      <h3>for you</h3>
+      <h3>Fakt Tuzyasathi ❤️</h3>
       <div className="letter-body" key={page}>
         {PAGES[page].map((line) => (
           <p key={line}>{line}</p>
         ))}
       </div>
-      <button className="btn" onClick={() => (last ? onDone() : setPage(page + 1))}>
-        {last ? "Continue 🧡" : "Next"}
+      <button className="btn" onClick={handleNext}>
+        {last ? "Pudhe Chala 🧡" : "Pudhe →"}
       </button>
     </div>
   );

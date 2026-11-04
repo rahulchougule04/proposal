@@ -1,12 +1,12 @@
 import { useState } from "react";
 
 const NO_LABELS = [
-  "💔 NO",
-  "🙈 SHAYAD NAHI",
-  "Please Soch Lo 🧡",
-  "Ek Baar Aur 😭",
-  "Itna Mat Socho 🥺",
-  "Pakka Haan Hi Bolna Hai 😌",
+  "💔 NAKO",
+  "🙈 KADACHIT NAHI",
+  "Please Vichar Kar Na 🧡",
+  "Ajun Ekda Vichar Kar 😭",
+  "Itka Nako Vichar Karu 🥺",
+  "Pakka Ho Ch Mhanyachay 😌",
 ];
 
 // Predefined safe non-overlapping positions (never overlaps YES, never touches card edges)
@@ -22,7 +22,7 @@ const SAFE_DODGE_SPOTS = [
   { x: 28, y: 18 },
 ];
 
-export default function Question({ onYes, onNo }) {
+export default function Question({ onYes, onNo, onAction }) {
   const [asked, setAsked] = useState(false);
   const [tries, setTries] = useState(0);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -30,10 +30,16 @@ export default function Question({ onYes, onNo }) {
   if (!asked) {
     return (
       <div className="glass ask">
-        <p className="soft">So...</p>
-        <h2>Ek Question Puchu?</h2>
-        <button className="btn small" onClick={() => setAsked(true)}>
-          Haan Pucho
+        <p className="soft">Aika na...</p>
+        <h2>Ek Prashna Vicharu?</h2>
+        <button
+          className="btn small"
+          onClick={() => {
+            onAction?.("Clicked 'Ho Vichara 🙈' (Unlocked Proposal Question Screen)");
+            setAsked(true);
+          }}
+        >
+          Ho Vichara 🙈
         </button>
       </div>
     );
@@ -54,21 +60,28 @@ export default function Question({ onYes, onNo }) {
       y: Math.round(spot.y * scale),
     });
 
+    const label = NO_LABELS[tries % NO_LABELS.length];
+    onAction?.(`Clicked/dodged 'NAKO' button (Attempt #${nextTries}: "${label}")`);
     // Notify parent that 'No' was clicked / dodged
-    onNo?.(nextTries);
+    onNo?.(nextTries, label);
   };
 
   return (
     <div className="glass proposal">
-      <h1 className="grad-title">Kya Tum Meri Girlfriend Banogi?</h1>
+      <h1 className="grad-title">Tu Mazi Girlfriend Hoshil Ka?</h1>
       <div className="big-heart">💜</div>
 
       <div className="btn-zone">
         <button
           className="btn yes"
-          onClick={() => onYes(tries)}
+          onClick={() => {
+            onAction?.(
+              `Clicked '💗 HO NAKKI!' (Said YES to Proposal! Total 'Nako' attempts: ${tries})`
+            );
+            onYes(tries);
+          }}
         >
-          💗 YES
+          💗 HO NAKKI!
         </button>
         <button
           className="btn ghost no"

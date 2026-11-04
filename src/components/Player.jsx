@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export default function Player({ audio, onDone }) {
+export default function Player({ audio, onDone, onAction }) {
   const [playing, setPlaying] = useState(!audio.paused);
   const [progress, setProgress] = useState(0);
   const [started, setStarted] = useState(!audio.paused);
@@ -19,20 +19,22 @@ export default function Player({ audio, onDone }) {
         await audio.play();
         setPlaying(true);
         setStarted(true);
+        onAction?.("Clicked '▶ Play Song 🎵' (Audio Started Playing)");
       } catch (e) {
         console.warn("Audio blocked:", e);
       }
     } else {
       audio.pause();
       setPlaying(false);
+      onAction?.("Clicked 'Pause Song' (Audio Paused)");
     }
   };
 
   return (
     <div className="glass player">
       <div className={`disc ${playing ? "spin" : ""}`} />
-      <h3 className="track">Us 🧡</h3>
-      <small className="sub">Our Story</small>
+      <h3 className="track">Aapan Doghe 🧡</h3>
+      <small className="sub">Aapli Love Story</small>
 
       <div className={`eq ${playing ? "on" : ""}`}>
         <i /><i /><i /><i /><i />
@@ -42,18 +44,24 @@ export default function Player({ audio, onDone }) {
       </div>
 
       <button className="btn" onClick={toggle}>
-        {playing ? "❤ Playing..." : "▶ Play Love"}
+        {playing ? "❤ Playing..." : "▶ Play Song 🎵"}
       </button>
 
       {started && (
         <>
           <p className="lyric fade-in">
-            Tum sirf meri favourite person nahi ho...
+            Tu fakt mazi favourite person nahis...
             <br />
-            Tum meri favourite feeling ho. 💗
+            Tu mazi saglyat favourite feeling ahes. 💗
           </p>
-          <button className="btn small fade-in" onClick={onDone}>
-            Continue
+          <button
+            className="btn small fade-in"
+            onClick={() => {
+              onAction?.("Clicked 'Pudhe Chala 🧡' on Player (Proceeding to Proposal Question)");
+              onDone();
+            }}
+          >
+            Pudhe Chala 🧡
           </button>
         </>
       )}

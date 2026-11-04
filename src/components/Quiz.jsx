@@ -1,19 +1,24 @@
 import { useState } from "react";
 
 const CARDS = [
-  { icon: "❤️", q: "Coffee Date?", a: ["YES", "OF COURSE"] },
-  { icon: "🌙", q: "Late Night Talks?", a: ["100%", "FOREVER"] },
-  // third card isn't visible in the video — edit freely
-  { icon: "🎬", q: "Movie Nights?", a: ["YES", "ALWAYS"] },
+  { icon: "☕", q: "Coffee Date?", a: ["HO NAKKI", "KADHIPPAN"] },
+  { icon: "🌙", q: "Late Night Talks?", a: ["100% HO", "KAYAMCH"] },
+  { icon: "🎬", q: "Movie Nights?", a: ["HO CHALEL", "NEHEMICH"] },
 ];
 
-export default function Quiz({ onDone, onAnswer }) {
+export default function Quiz({ onDone, onAnswer, onAction }) {
   const [i, setI] = useState(0);
   const card = CARDS[i];
 
   const answer = (choice) => {
+    const isLast = i === CARDS.length - 1;
+    onAction?.(
+      `Quiz Question ${i + 1}/${CARDS.length} ("${card.q}"): Clicked "${choice}"${
+        isLast ? " (Quiz Completed -> Moving to Music Player)" : ""
+      }`
+    );
     onAnswer?.(card.q, choice);
-    if (i === CARDS.length - 1) {
+    if (isLast) {
       onDone();
     } else {
       setI(i + 1);
